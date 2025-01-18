@@ -1,9 +1,16 @@
 package main
 
 import (
-	"context"
-	"data-collector/utils"
+	ctx "context"
+	"data-collector/api"
+	"data-collector/config"
+	"data-collector/service/history"
+	"github.com/GiairoZeppeli/utils/context"
+	"github.com/GiairoZeppeli/utils/kafka"
+	"github.com/redis/go-redis/v9"
+	bybit "github.com/wuhewuhe/bybit.go.api"
 	"go.uber.org/zap"
+	"log"
 	"time"
 )
 
@@ -13,50 +20,41 @@ const (
 )
 
 type App struct {
-	ctx      utils.MyContext
-	server   *api.Server
-	mongo    *mongo.Database
-	redis    *redis.Client
-	settings config.Settings
+	ctx           context.MyContext
+	server        *api.Server
+	redis         *redis.Client
+	settings      config.Settings
+	kafkaProducer kafka.Producer
 }
 
-func NewApp(ctx context.Context, logger *zap.SugaredLogger, settings config.Settings) *App {
+func NewApp(ctx ctx.Context, logger *zap.SugaredLogger, settings config.Settings) *App {
 	return &App{
-		ctx:      utils.NewMyContext(ctx, logger),
+		ctx:      context.NewMyContext(ctx, logger),
 		settings: settings,
 	}
 }
 
 func (a *App) InitDatabase() error {
-	client, err := mongo.Connect(options.Client().ApplyURI(a.settings.Mongo.MongoURL))
+	return nil
+}
+
+func (a *App) InitMQ() error {
+	producer, err := kafka.NewProducer(a.settings.Kafka.Address)
 	if err != nil {
-		a.ctx.Logger.Fatalf("failed to connect to MongoDB: %v", err)
+		log.Fatalf("Failed to create producer: %v", err)
 	}
-
-	err = client.Ping(a.ctx.Ctx, nil)
-	if err != nil {
-		a.ctx.Logger.Fatalf("failed to ping MongoDB: %v", err)
-	}
-
-	a.mongo = client.Database(a.settings.Mongo.Database)
-
-	a.redis = redis.NewClient(&redis.Options{
-		Addr:     a.settings.Redis.Address,
-		Username: a.settings.Redis.User,
-		Password: a.settings.Redis.Password,
-		DB:       a.settings.Redis.DB,
-	})
-
-	_, err = a.redis.Ping(a.ctx.Ctx).Result()
-	if err != nil {
-		a.ctx.Logger.Fatalf("failed to ping Redis: %v", err)
-	}
+	a.kafkaProducer = producer
 
 	return nil
 }
 
 func (a *App) InitService() {
 	a.server = api.NewServer(a.ctx)
+
+	bybitClient := bybit.NewBybitHttpClient("Rd2ENQWlsRwgWKYhUI", "mAZLYExoBZjMmqvlNb9STkhDY3U99L0TK7C9", bybit.WithBaseURL(bybit.TESTNET))
+
+	historyService := history.NewHistoryService(bybitClient, a.kafkaProducer)
+	a.server.HandleHistory(a.ctx, historyService)
 }
 
 func (a *App) Run() error {
@@ -71,15 +69,10 @@ func (a *App) Run() error {
 }
 
 func (a *App) Shutdown() error {
-	err := a.server.Shutdown(a.ctx.Ctx)
+	err := a.server.Shutdown(a.ctx)
 	if err != nil {
 		a.ctx.Logger.Errorf("Failed to disconnect from server %v", err)
 		return err
-	}
-
-	err = a.mongo.Client().Disconnect(a.ctx.Ctx)
-	if err != nil {
-		a.ctx.Logger.Errorf("failed to disconnect from bd %v", err)
 	}
 
 	a.ctx.Logger.Info("server shut down successfully")

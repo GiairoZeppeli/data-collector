@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"github.com/spf13/viper"
 )
 
@@ -18,11 +17,14 @@ const (
 	redisUserKey     = "redis.user"
 	redisPasswordKey = "redis.password"
 	redisDBKey       = "redis.db"
+	kafkaAddressKey  = "kafka.address"
+	kafkaTopicKey    = "kafka.topic"
 )
 
 type Settings struct {
 	Mongo MongoSettings
 	Redis RedisSettings
+	Kafka KafkaSettings
 }
 
 type MongoSettings struct {
@@ -39,6 +41,11 @@ type RedisSettings struct {
 	DB       int
 }
 
+type KafkaSettings struct {
+	Address []string
+	Topic   []string
+}
+
 func NewSettings() (Settings, error) {
 	err := initConfig()
 	if err != nil {
@@ -46,22 +53,9 @@ func NewSettings() (Settings, error) {
 	}
 
 	return Settings{
-		Mongo: MongoSettings{
-			Database: viper.GetString(mongoDatabaseKey),
-			User:     viper.GetString(mongoUserKey),
-			Password: viper.GetString(mongoPasswordKey),
-			MongoURL: fmt.Sprintf("mongodb://%s:%s@%s:%s",
-				viper.GetString(mongoUserKey),
-				viper.GetString(mongoPasswordKey),
-				viper.GetString(mongoHostKey),
-				viper.GetString(mongoPortKey),
-			),
-		},
-		Redis: RedisSettings{
-			Address:  fmt.Sprintf("%s:%s", viper.GetString(redisHostKey), viper.GetString(redisPortKey)),
-			User:     viper.GetString(redisUserKey),
-			Password: viper.GetString(redisPasswordKey),
-			DB:       viper.GetInt(redisDBKey),
+		Kafka: KafkaSettings{
+			Address: viper.GetStringSlice(kafkaAddressKey),
+			Topic:   viper.GetStringSlice(kafkaTopicKey),
 		},
 	}, nil
 }

@@ -2,8 +2,8 @@ package responseWrapper
 
 import (
 	"encoding/json"
+	"github.com/GiairoZeppeli/utils/context"
 	"net/http"
-	"utils/context"
 )
 
 type ErrorResponse struct {

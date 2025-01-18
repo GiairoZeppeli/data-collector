@@ -31,6 +31,10 @@ func main() {
 		logger.Errorf("fail to init database: %s", err)
 	}
 
+	if err := app.InitMQ(); err != nil {
+		logger.Errorf("fail to init mq: %s", err)
+	}
+
 	app.InitService()
 	if err = app.Run(); err != nil {
 		logger.Errorf("fail to run: %s", err)
