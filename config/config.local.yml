@@ -13,6 +13,6 @@ redis:
 
 kafka:
   address:
-    - "localhost:9091"
+    - "localhost:9093"
   topic:
     - "analytic"

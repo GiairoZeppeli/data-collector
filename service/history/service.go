@@ -1,8 +1,8 @@
 package history
 
 import (
+	"data-collector/kafka"
 	"github.com/GiairoZeppeli/utils/context"
-	"github.com/GiairoZeppeli/utils/kafka"
 	bybit "github.com/wuhewuhe/bybit.go.api"
 )
 
