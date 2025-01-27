@@ -3,10 +3,10 @@ package api
 import (
 	"data-collector/api/handler"
 	"data-collector/service/history"
+	"data-collector/service/market"
 	"github.com/GiairoZeppeli/utils/context"
 	"github.com/GiairoZeppeli/utils/middleware"
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
 	"github.com/swaggo/http-swagger"
 	"net/http"
 	"time"
@@ -32,7 +32,7 @@ func NewServer(ctx context.MyContext) *Server {
 
 	return &Server{
 		httpServer: &http.Server{
-			Addr:           viper.GetString("db"),
+			Addr:           "localhost:8080",
 			MaxHeaderBytes: maxHeaderBytes,
 			ReadTimeout:    readTimeout,
 			WriteTimeout:   writeTimeout,
@@ -54,8 +54,14 @@ func (s *Server) HandlePing(ctx context.MyContext) {
 	s.router.HandleFunc("/ping/", handler.Ping(ctx)).Methods(http.MethodGet)
 }
 
-func (s *Server) HandleAccount(ctx context.MyContext) {
-	s.router.HandleFunc("/account/balance", handler.AccountBalance(ctx)).Methods(http.MethodGet)
+func (s *Server) HandleMarket(ctx context.MyContext, service market.Service) {
+	s.router.HandleFunc("/market/position/info", handler.PositionInfo(ctx, service)).Methods(http.MethodGet)
+	s.router.HandleFunc("/market/orderbook", handler.OrderBook(ctx, service)).Methods(http.MethodGet)
+	s.router.HandleFunc("/market/funding-rate", handler.FundingRate(ctx, service)).Methods(http.MethodGet)
+	s.router.HandleFunc("/market/delivery-price", handler.DeliveryPrice(ctx, service)).Methods(http.MethodGet)
+	s.router.HandleFunc("/market/coin-info", handler.CoinInfo(ctx, service)).Methods(http.MethodGet)
+	s.router.HandleFunc("/market/tickers", handler.Tickers(ctx, service)).Methods(http.MethodGet)
+
 }
 
 func (s *Server) HandleHistory(ctx context.MyContext, service history.Service) {

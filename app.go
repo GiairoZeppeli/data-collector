@@ -6,6 +6,7 @@ import (
 	"data-collector/config"
 	"data-collector/kafka"
 	"data-collector/service/history"
+	"data-collector/service/market"
 	"github.com/GiairoZeppeli/utils/context"
 	"github.com/redis/go-redis/v9"
 	bybit "github.com/wuhewuhe/bybit.go.api"
@@ -15,8 +16,10 @@ import (
 )
 
 const (
-	cacheKey = "coin:%s"
-	ttl      = 10 * time.Minute
+	cacheKey      = "coin:%s"
+	ttl           = 10 * time.Minute
+	PublicApiKey  = "Rd2ENQWlsRwgWKYhUI"
+	PrivateApiKey = "mAZLYExoBZjMmqvlNb9STkhDY3U99L0TK7C9"
 )
 
 type App struct {
@@ -51,10 +54,12 @@ func (a *App) InitMQ() error {
 func (a *App) InitService() {
 	a.server = api.NewServer(a.ctx)
 
-	bybitClient := bybit.NewBybitHttpClient("Rd2ENQWlsRwgWKYhUI", "mAZLYExoBZjMmqvlNb9STkhDY3U99L0TK7C9", bybit.WithBaseURL(bybit.TESTNET))
+	bybitClient := bybit.NewBybitHttpClient(PublicApiKey, PrivateApiKey, bybit.WithBaseURL(bybit.TESTNET))
 
 	historyService := history.NewHistoryService(bybitClient, a.kafkaProducer)
+	marketService := market.NewMarketService(bybitClient, a.kafkaProducer)
 	a.server.HandleHistory(a.ctx, historyService)
+	a.server.HandleMarket(a.ctx, marketService)
 }
 
 func (a *App) Run() error {

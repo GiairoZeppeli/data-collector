@@ -23,8 +23,7 @@ func NewHistoryService(client *bybit.Client, producer kafka.Producer) *Impl {
 }
 
 const (
-	topic  = "history"
-	broker = "localhost:9092"
+	topic = "history"
 )
 
 func (s *Impl) GetCandleHistory(ctx context.MyContext, candleHistoryParams map[string]interface{}) (string, error) {
